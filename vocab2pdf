@@ -1,0 +1,103 @@
+#!/bin/bash -x
+########################## vocab2pdf ##########################
+###
+# *  (C) 2020-2021 - erfahren@atadcrazy.net 
+# *  Licensed under GNU General Public License 3.0 or later. 
+# *  Some rights reserved. See COPYING, AUTHORS.
+# * @license GPL-3.0+ http://spdx.org/licenses/GPL-3.0+
+#
+# This script takes a list of words (single column in plain text format) 
+# and produces a multi-page PDF document as well as a formatted text file with the words and their definitions.
+#
+# dependencies: StarDict's sdcv (with WordNet dictionary), wkhtmltopdf - https://wkhtmltopdf.org/, and zenity
+# WordNet dictionary in Stardict's directory (e.g. /usr/share/stardict/dic )
+# package available at http://stardict-4.sourceforge.net/
+# for more info visit: https://owenh.net/stardict.html
+# dictionary also available here: 
+# http://www.atadcrazy.net/gnu-linux/misc/stardict_wordnet.tar.bz2
+###
+# script includes feature to format the list in alphabetical order and remove duplicates
+# words not found in dictionary are logged into a file in the created temporary directory "$HOME/vocabtmp"
+# the "vocablist" in the aforementioned diectory is the created formatted plain text file of the found words and their definitions.
+###
+# Note: Tested with about 800 words. The sleeps may need to be increased if the entry word list is larger. 
+###
+mkdir -p $HOME/vocabtmp && cd $HOME/vocabtmp
+mkdir -p ./v-tmp
+zenity --info --width=400 --height=200 --title="vocab2pdf" --text="This script prompts for a plain text file containing 
+                                                                    \na single column list of words to be processed."
+# Zenity File Selector
+FILE=`zenity --file-selection --width=400 --height=200 --title="Select a plain text file with list of words"`
+case $? in
+         0)
+                echo "\"$FILE\" selected.";;
+         1)
+                echo "No file selected.";;
+        -1)
+                echo "An unexpected error has occurred.";;
+esac
+cat $FILE | awk '{print $1}' > $FILE.tmp
+sleep 2 &&
+mv $FILE.tmp $FILE #| zenity --progress \
+                                                                #--pulsate --auto-close \
+                                                                #--title="Working... please wait"
+# the commented out 'zenity --progress' above may not be needed/wanted ^
+########################## SORT ##########################
+zenity --question --width=400 --height=200 --text="Sort the list? (creates backup of the orginal) \ 
+                          \n *sorts in alphabetical order \
+                          \n *removes duplicates" --ok-label="Yes" --cancel-label="No"; echo $?
+if [ $? = 0 ]; then
+cp $FILE $FILE.back && sort -b -d $FILE > $FILE-srtd && uniq -u $FILE-srtd > $FILE-srtd-nodupes && sed '/^\s*$/d' $FILE-srtd-nodupes > $FILE-srtd && mv $FILE-srtd $FILE && rm $FILE-srtd-nodupes
+
+else
+    $FILE=$FILE
+fi
+##########################################################
+cat $FILE | while read line
+ do
+ sdcv -nue "WordNet" $line > ./defwordtmp1
+cat ./defwordtmp1 | sed '1,4d' > ./defwordtmp2
+## ensuring word was found and... ##
+## setting the first word out of the results as the variable "entryword"
+entryword=$(awk 'NR == 1 { print $1 }' ./defwordtmp2)
+if [ "$entryword" == "$line" ]
+then
+## removes blank lines and cuts definition to ten lines
+sed '/^$/d' ./defwordtmp2 > ./defwordtmp1
+sed 10q ./defwordtmp1 > defwordtmp 
+echo "" >> defwordtmp
+cat defwordtmp >> vocablist
+###
+else
+echo -e $line >> vocab-notfound.log
+fi
+definition=$(sed 10q ./defwordtmp1)
+echo "<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+<meta charset=\"UTF-8\">
+<title>$entryword</title>
+<style type=\"text/css\">
+body { margin:0px; padding:0px; font-family:verdana, arial, helvetica, sans-serif; color:#000000; background-color:#ffffff; height:612px; width:792px; }
+div.main { border-radius:30px; border-style:groove; border-color:grey; }
+p.large { font-size:xx-large; font-weight:600; line-height:40px; margin:10px; padding:20px; }
+p { font-size:x-large; font-weight:600; line-height:30px; margin:10px; padding:20px; }
+</style>
+</head>
+<body>
+<div class=\"main\">
+<br>
+<p class=\"large\">$entryword<br></p>
+<p>$definition</p>
+</div>
+</body></html>" > ./v-tmp/$entryword.html
+done | zenity --progress --width=400 --height=200 --pulsate --title="Working... " \
+                                   --text="Creating pdf, \n  please wait..."
+wkhtmltopdf -O Landscape --no-background -B 0mm -L 0mm -R 0mm -T 0mm --collate ./v-tmp/*.html $HOME/vocab.pdf
+xdg-open $HOME/vocab.pdf &
+rm defwordtmp*
+rm -r ./v-tmp
+zenity --info --width=400 --height=200 --title="vocab2pdf" --text="words not found are logged in $HOME/vocabtmp/vocab-notfound.log 
+                                                                    \nthe formatted plain text file of the found words and their definitions 
+                                                                     \nis $HOME/vocabtmp/vocablist. \n\n\n   Thank you for using vocab2pdf"
+exit
