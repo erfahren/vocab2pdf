@@ -10,8 +10,8 @@
 # and produces a multi-page PDF document as well as a formatted text file with the words and their definitions.
 #
 # dependencies: StarDict's sdcv (with WordNet dictionary), wkhtmltopdf - https://wkhtmltopdf.org/, and zenity
+# StarDict package available at http://stardict-4.sourceforge.net/
 # WordNet dictionary in Stardict's directory (e.g. /usr/share/stardict/dic )
-# package available at http://stardict-4.sourceforge.net/
 # for more info visit: https://owenh.net/stardict.html
 # dictionary also available here: 
 # http://www.atadcrazy.net/gnu-linux/misc/stardict_wordnet.tar.bz2
@@ -22,11 +22,13 @@
 ###
 # Note: Tested with about 800 words. The sleeps may need to be increased if the entry word list is larger. 
 ###
+## creating temporary working directory ##
 mkdir -p $HOME/vocabtmp && cd $HOME/vocabtmp
 mkdir -p ./v-tmp
+## Zenity Info Dialog - program introduction dialog ##
 zenity --info --width=400 --height=200 --title="vocab2pdf" --text="This script prompts for a plain text file containing 
                                                                     \na single column list of words to be processed."
-# Zenity File Selector
+## Zenity File Selector ##
 FILE=`zenity --file-selection --width=400 --height=200 --title="Select a plain text file with list of words"`
 case $? in
          0)
@@ -57,21 +59,22 @@ cat $FILE | while read line
  do
  sdcv -nue "WordNet" $line > ./defwordtmp1
 cat ./defwordtmp1 | sed '1,4d' > ./defwordtmp2
-## ensuring word was found and... ##
+## ensuring word was found and... 
 ## setting the first word out of the results as the variable "entryword"
 entryword=$(awk 'NR == 1 { print $1 }' ./defwordtmp2)
 if [ "$entryword" == "$line" ]
-then
+   then
 ## removes blank lines and cuts definition to ten lines
-sed '/^$/d' ./defwordtmp2 > ./defwordtmp1
-sed 10q ./defwordtmp1 > defwordtmp 
-echo "" >> defwordtmp
-cat defwordtmp >> vocablist
-###
+        sed '/^$/d' ./defwordtmp2 > ./defwordtmp1
+        sed 10q ./defwordtmp1 > defwordtmp 
+       #echo -e "%" >> defwordfortunetmp ## (for fortune data file)
+        echo "" >> defwordtmp
+        cat defwordtmp >> vocabulary-words
 else
-echo -e $line >> vocab-notfound.log
+        echo -e $line >> vocab-notfound.log
 fi
 definition=$(sed 10q ./defwordtmp1)
+## creating temporary html output files
 echo "<!DOCTYPE html>
 <html lang=\"en\">
 <head>
@@ -79,7 +82,7 @@ echo "<!DOCTYPE html>
 <title>$entryword</title>
 <style type=\"text/css\">
 body { margin:0px; padding:0px; font-family:verdana, arial, helvetica, sans-serif; color:#000000; background-color:#ffffff; height:612px; width:792px; }
-div.main { border-radius:30px; border-style:groove; border-color:grey; }
+div.main { border-radius:30px; border-style:groove; border-color:grey; color:#000000; background-color:#DCDCDC; }
 p.large { font-size:xx-large; font-weight:600; line-height:40px; margin:10px; padding:20px; }
 p { font-size:x-large; font-weight:600; line-height:30px; margin:10px; padding:20px; }
 </style>
@@ -93,11 +96,16 @@ p { font-size:x-large; font-weight:600; line-height:30px; margin:10px; padding:2
 </body></html>" > ./v-tmp/$entryword.html
 done | zenity --progress --width=400 --height=200 --pulsate --title="Working... " \
                                    --text="Creating pdf, \n  please wait..."
-wkhtmltopdf -O Landscape --no-background -B 0mm -L 0mm -R 0mm -T 0mm --collate ./v-tmp/*.html $HOME/vocab.pdf
-xdg-open $HOME/vocab.pdf &
+## combining temporary html files into pdf
+wkhtmltopdf -O Landscape -B 0mm -L 0mm -R 0mm -T 0mm --collate ./v-tmp/*.html $HOME/vocabulary-words.pdf
+xdg-open $HOME/vocabulary-words.pdf &
 rm defwordtmp*
+## cleanup ##
 rm -r ./v-tmp
+mv * ../
+cd .. 
+rmdir vocabtmp
 zenity --info --width=400 --height=200 --title="vocab2pdf" --text="words not found are logged in $HOME/vocabtmp/vocab-notfound.log 
                                                                     \nthe formatted plain text file of the found words and their definitions 
-                                                                     \nis $HOME/vocabtmp/vocablist. \n\n\n   Thank you for using vocab2pdf"
+                                                                     \nis $HOME/vocabulary-words. \n\n\n   Thank you for using vocab2pdf"
 exit
