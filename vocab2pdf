@@ -81,8 +81,9 @@ echo "<!DOCTYPE html>
 <meta charset=\"UTF-8\">
 <title>$entryword</title>
 <style type=\"text/css\">
-body { margin:0px; padding:0px; font-family:verdana, arial, helvetica, sans-serif; color:#000000; background-color:#ffffff; height:612px; width:792px; }
-div.main { border-radius:30px; border-style:groove; border-color:grey; color:#000000; background-color:#DCDCDC; }
+html { height: 100%; width: 100%; border-style:groove; border-color:navy; }
+body { margin:0px; padding:0px; font-family:verdana, arial, helvetica, sans-serif; background-color:#dcdcdc; height: 100%; width: 100%; }
+div.main { color:#000000; background-color:#dcdcdc; height: 100%; }
 p.large { font-size:xx-large; font-weight:600; line-height:40px; margin:10px; padding:20px; }
 p { font-size:x-large; font-weight:600; line-height:30px; margin:10px; padding:20px; }
 </style>
@@ -94,7 +95,7 @@ p { font-size:x-large; font-weight:600; line-height:30px; margin:10px; padding:2
 <p>$definition</p>
 </div>
 </body></html>" > ./v-tmp/$entryword.html
-done | zenity --progress --width=400 --height=200 --pulsate --title="Working... " \
+done | zenity --progress --auto-close --width=400 --height=200 --pulsate --title="Working... " \
                                    --text="Creating pdf, \n  please wait..."
 ## combining temporary html files into pdf
 wkhtmltopdf -O Landscape -B 0mm -L 0mm -R 0mm -T 0mm --collate ./v-tmp/*.html $HOME/vocabulary-words.pdf
