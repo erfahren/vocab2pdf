@@ -1,0 +1,88 @@
+#!/bin/bash
+########################## vocab2pdf ##########################
+###
+# *  (C) 2014-26 - erfahren@atadcrazy.net 
+# *  Licensed under GNU General Public License 3.0 or later. 
+# *  Some rights reserved. See COPYING, AUTHORS.
+# * @license GPL-3.0+ http://spdx.org/licenses/GPL-3.0+
+#
+# This script takes a list of words (single column in plain text format) and produces
+# a pdf with an entry per page as well as a text file with the words and their definitions.
+# 
+# dependencies: StarDict's sdcv (with WordNet dictionary), imagemagick, and zenity
+# StarDict package available at http://stardict-4.sourceforge.net/
+#
+# WordNet dictionary in Stardict's directory (e.g. /usr/share/stardict/dic )
+# for more info visit: https://owenh.net/stardict.html
+# dictionary also available here: 
+# http://www.atadcrazy.net/gnu-linux/misc/stardict_wordnet.tar.bz2
+###
+# Script includes feature to format the list in alphabetical order and remove duplicates
+# Note: Tested with 8000 words. The sleeps may need to be increased if the entry word list is larger. 
+# Give it the minute...
+###
+cd $(pwd)
+## Zenity Info Dialog - program introduction dialog
+zenity --info --title="vocab2list" --width=300 --height=100 --text="This script prompts for a plain text file containing \ a single column list of words in  to be processed."
+## Zenity File Selector
+FILE=`zenity --file-selection --width=600 --height=400 --title="Select a plain text file with list of words"`
+
+case $? in
+         0)
+                echo "\"$FILE\" selected.";;
+         1)
+                echo "No file selected.";;
+        -1)
+                echo "An unexpected error has occurred.";;
+esac
+sleep 2 &&
+cat $FILE | awk '{print $1}' > $FILE.tmp 
+sleep 2 &&
+mv $FILE.tmp $FILE 
+
+########################## SORT ##########################
+
+cp $FILE $FILE.back && sort -b -d $FILE > $FILE-srtd && uniq -i $FILE-srtd > $FILE-srtd-nodupes && sed '/^\s*$/d' $FILE-srtd-nodupes > $FILE-srtd && mv $FILE-srtd $FILE && rm $FILE-srtd-nodupes
+
+##########################################################
+mkdir -p ./vocabtmp
+cd ./vocabtmp
+magick -size 800x540 xc:lightblue -frame 10x10 800x540.png
+cat $FILE | while read line
+ do
+ sdcv -n -u "WordNet" $line > ./defwordtmp1
+cat ./defwordtmp1 | sed '1,4d' > ./defwordtmp2
+## ensuring word was found and... 
+## setting the first word out of the results as the variable "entryword"
+entryword=$(awk 'NR == 1 { print $1 }' ./defwordtmp2)
+if [ "$entryword" == "$line" ]
+   then
+## removes blank lines and cuts definition to ten lines
+        sed '/^$/d' ./defwordtmp2 > ./defwordtmp1
+        sed 10q ./defwordtmp1 > defwordtxttmp 
+       #echo -e "%" >> defwordfortunetmp ## (for fortune data file)
+        echo "" >> defwordtxttmp
+        cat defwordtxttmp >> $HOME/vocabulary-words
+## imagemagick to pdf
+entrytxt=$(cat ./defwordtxttmp)     
+magick 800x540.png -fill black -pointsize 26 -annotate +40+40 "$entrytxt" $entryword.png           
+else
+        echo -e $line >> $HOME/vocab-notfound.log
+fi
+done | zenity --progress --pulsate --title="Working... " \
+                                   --text="Creating entries for pdf, \n  please wait..."
+###
+magick 800x540.png -fill black -pointsize 32 -gravity center -annotate 0 "Vocabulary Words" 0.png  
+rm 800x540.png
+magick *.png $HOME/vocabulary-words.pdf | zenity --progress --pulsate --title="Working... " \
+                                   --text="Creating pdf, \n  please wait..."
+###
+zenity --info --title="Info" --text="Words not found logged in $HOME/vocab-notfound.log \
+                                     \n List of vocabulary words: $HOME/vocabulary-words"
+###
+## cleanup of its temp files ##
+rm defword*
+cd ../
+rm -R ./vocabtmp
+xdg-open $HOME/vocabulary-words.pdf &
+exit 0
