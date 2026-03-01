@@ -12,4 +12,5 @@ http://www.atadcrazy.net/gnu-linux/misc/stardict_wordnet.tar.bz2
 Script includes feature to format the list in alphabetical order and remove duplicates.
 
 **Also creates files for fortune if the program is installed (in /usr/bin/fortune )**
+
 Note: Tested with 8000 words. The sleeps may need to be increased if the entry word list is larger. 
