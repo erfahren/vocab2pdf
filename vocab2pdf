@@ -17,7 +17,8 @@
 # dictionary also available here: 
 # http://www.atadcrazy.net/gnu-linux/misc/stardict_wordnet.tar.bz2
 ###
-# Script includes feature to format the list in alphabetical order and remove duplicates
+# Script includes feature to format the list in alphabetical order and remove duplicates.
+# Also creates files for fortune if the program is installed (in /usr/bin/fortune )
 # Note: Tested with 8000 words. The sleeps may need to be increased if the entry word list is larger. 
 # Give it the minute...
 ###
@@ -75,6 +76,11 @@ rm 800x540.png
 magick *.png $HOME/vocabulary-words.pdf | zenity --progress --pulsate --title="   Working... (Stage 2 of 2)" \
                                    --text="   Creating pdf, \n  please wait..."
 ###
+# For a "%" delimited file for fortune cmd: strfile vocabfortune.txt vocabfortune.dat
+if [ -x /usr/bin/fortune ]; then
+sed 's/^$/%/' $HOME/vocabulary-words > $HOME/vocab-fortune
+strfile $HOME/vocab-fortune $HOME/vocab-fortune.dat
+fi
 zenity --info --title="Info" --text="   Words not found logged in $HOME/vocab-notfound.log \
                                         \n List of vocabulary words: $HOME/vocabulary-words"
 ###
