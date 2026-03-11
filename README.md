@@ -13,4 +13,4 @@ Script includes feature to format the list in alphabetical order and remove dupl
 
 **Also creates files for fortune if the program is installed (in /usr/bin/fortune )**
 
-Note: Tested with [8000 words](https://drive.google.com/file/d/1YsFoiHjMHzIJ3kvGAYRjsmNI4rZEvmKl/view "plain text single-column word list on Google Drive"). The sleeps may need to be increased if the entry word list is larger. 
+Note: Tested with [1800 words](https://drive.google.com/file/d/1YsFoiHjMHzIJ3kvGAYRjsmNI4rZEvmKl/view "plain text single-column word list on Google Drive"). The sleeps may need to be increased if the entry word list is larger. 
